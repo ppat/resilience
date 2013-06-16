@@ -17,8 +17,7 @@ import LastKnownGoodDSL._
 object LastKnownGoodDSL {
   private[resilience] val DEFAULT_EXPIRATION = 24 * 60 * 60 * 1000
 
-  /** execute the given query and fallback to last known good value if execution fails */
-  def last(implicit request: LastKnownGoodConfig) = new Object {
+  def LastKnownGood[K, V](key: K)(implicit request: LastKnownGoodConfig) = new Object {
     require(request.maxSize <= 250, "Last Known Good Query is intended for use with small data sets")
 
     // google, why do you not let me create a cache typed to [K, V]?
@@ -28,18 +27,20 @@ object LastKnownGoodDSL {
                                                    .expireAfterWrite(request.expiration, TimeUnit.MILLISECONDS)
                                                    .build()
 
-    def known = new Object {
-      def good[K, V](query: K => V) = new Object {
-        def keyedBy[X <: K](key: X): V = {
-          gracefully {
-            val result = query(key)
-            cache.put(key.asInstanceOf[Object], result.asInstanceOf[Object])
-            result
-          } fallback {
-            cache.getIfPresent(key).asInstanceOf[V]
-          }
-        }
+    /** execute the given query and fallback to last known good value if execution fails */
+    def maintain(query: => V): V = {
+      gracefully {
+        val result = query
+        cache.put(key.asInstanceOf[Object], result.asInstanceOf[Object])
+        result
+      } fallback {
+        state
       }
+    }
+
+    /** retrieve last known good value if available */
+    def state: V = {
+      cache.getIfPresent(key).asInstanceOf[V]
     }
   }
 }
