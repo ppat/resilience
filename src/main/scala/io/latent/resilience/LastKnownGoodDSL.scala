@@ -17,18 +17,19 @@ import LastKnownGoodDSL._
 object LastKnownGoodDSL {
   private[resilience] val DEFAULT_EXPIRATION = 24 * 60 * 60 * 1000
 
-  def LastKnownGood[K, V](key: K)(implicit request: LastKnownGoodConfig) = new Object {
-    require(request.maxSize <= 250, "Last Known Good Query is intended for use with small data sets")
+  def LastKnownGood[K, V](key: K)(implicit config: LastKnownGoodConfig) = new Object {
+    require(config.maxSize <= 250, "Last Known Good Query is intended for use with small data sets")
 
     // google, why do you not let me create a cache typed to [K, V]?
     val cache: Cache[Object, Object] = CacheBuilder.newBuilder()
                                                    .concurrencyLevel(1)
-                                                   .maximumSize(request.maxSize)
-                                                   .expireAfterWrite(request.expiration, TimeUnit.MILLISECONDS)
+                                                   .maximumSize(config.maxSize)
+                                                   .expireAfterWrite(config.expiration, TimeUnit.MILLISECONDS)
                                                    .build()
 
     /** execute the given query and fallback to last known good value if execution fails */
     def maintain(query: => V): V = {
+      implicit val hystrixConfig = config.hystrixConfig
       gracefully {
         val result = query
         cache.put(key.asInstanceOf[Object], result.asInstanceOf[Object])
@@ -46,9 +47,6 @@ object LastKnownGoodDSL {
 }
 
 
-case class LastKnownGoodConfig(override val commandGroup: String,
-                               override val commandType: String,
-                               override val timeout: Option[Int] = None,
-                               override val threadPoolSize: Option[Int] = None,
+case class LastKnownGoodConfig(hystrixConfig: HystrixConfig,
                                maxSize: Int = 50,
-                               expiration: Int = DEFAULT_EXPIRATION) extends HystrixConfig(commandGroup, commandType, timeout, threadPoolSize)
+                               expiration: Int = DEFAULT_EXPIRATION)
