@@ -18,7 +18,7 @@ object LastKnownGoodDSL {
   private[resilience] val DEFAULT_EXPIRATION = 24 * 60 * 60 * 1000
 
   /** execute the given query and fallback to last known good value if execution fails */
-  def `last known good`[K, V](query: K => V)(implicit request: LastKnownGoodConfig) = new Object {
+  def last(implicit request: LastKnownGoodConfig) = new Object {
     require(request.maxSize <= 250, "Last Known Good Query is intended for use with small data sets")
 
     // google, why do you not let me create a cache typed to [K, V]?
@@ -28,13 +28,17 @@ object LastKnownGoodDSL {
                                                    .expireAfterWrite(request.expiration, TimeUnit.MILLISECONDS)
                                                    .build()
 
-    def `cache by`[X <: K](key: X): V = {
-      gracefully {
-        val result = query(key)
-        cache.put(key.asInstanceOf[Object], result.asInstanceOf[Object])
-        result
-      } fallback {
-        cache.getIfPresent(key).asInstanceOf[V]
+    def known = new Object {
+      def good[K, V](query: K => V) = new Object {
+        def keyedBy[X <: K](key: X): V = {
+          gracefully {
+            val result = query(key)
+            cache.put(key.asInstanceOf[Object], result.asInstanceOf[Object])
+            result
+          } fallback {
+            cache.getIfPresent(key).asInstanceOf[V]
+          }
+        }
       }
     }
   }
@@ -45,5 +49,5 @@ case class LastKnownGoodConfig(override val commandGroup: String,
                                override val commandType: String,
                                override val timeout: Option[Int] = None,
                                override val threadPoolSize: Option[Int] = None,
-                               maxSize: Int = 250,
+                               maxSize: Int = 50,
                                expiration: Int = DEFAULT_EXPIRATION) extends HystrixConfig(commandGroup, commandType, timeout, threadPoolSize)

@@ -1,6 +1,7 @@
 package io.latent.resilience
 
 import com.netflix.hystrix.HystrixCommand
+import java.util.concurrent.Future
 
 /**
  * A DSL on Hystrix
@@ -20,6 +21,9 @@ object HystrixDSL {
     def degrade(): T = new GracefulDegradation[T](command, config).execute()
   }
 
+  def async[T](command: => T)(implicit config: HystrixConfig): Future[T] = {
+    new GracefulDegradation[T](command, config).queue()
+  }
 }
 
 
