@@ -23,13 +23,13 @@ object CacheDSL {
   /** execute the given query and fallback to last known good value if execution fails */
   def LastKnownGoodConfig[K, V](key: K)
                                (query: => V)
-                               (implicit cache: Cache[K, V], config: HystrixConfig): V = {
+                               (implicit cache: Cache[K, V], config: HystrixConfig): Option[V] = {
     gracefully {
       val result = query
       cache.put(key, result)
-      result
+      Option(result)
     } fallback {
-      cache.get(key).getOrElse(throw new IllegalStateException("Last known good config unknown"))
+      cache.get(key)
     }
   }
 }
