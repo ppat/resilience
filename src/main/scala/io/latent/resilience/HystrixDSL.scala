@@ -28,13 +28,13 @@ object HystrixDSL {
 
 
 private class GracefulFallback[T](command: => T, fallback: => T, config: HystrixConfig)
-                                  extends HystrixCommand[T](config.setter) {
+                                  extends HystrixCommand[T](Hystrix.CommandSetter(config)) {
   def run(): T = command
 
   override def getFallback: T = fallback
 }
 
 private class GracefulDegradation[T](command: => T, config: HystrixConfig)
-                                     extends HystrixCommand[T](config.setter) {
+                                     extends HystrixCommand[T](Hystrix.CommandSetter(config)) {
   def run(): T = command
 }
