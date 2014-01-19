@@ -1,6 +1,7 @@
 package io.latent.resilience
 
 import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy
+import scala.concurrent.duration.Duration
 
 /**
  * Hystrix Config
@@ -12,7 +13,7 @@ import com.netflix.hystrix.HystrixCommandProperties.ExecutionIsolationStrategy
  */
 case class HystrixConfig(group: String,
                          command: String,
-                         timeout: Option[Int] = None,
+                         timeout: Option[Duration] = None,
                          isolation: Option[ExecutionIsolationStrategy] = None,
                          isolationSemaphoreMax: Option[Int] = None,
                          threadPoolSize: Option[Int] = None)

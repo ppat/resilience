@@ -43,8 +43,8 @@ private[resilience] class SetterFactory {
       .andThreadPoolKey(HystrixThreadPoolKey.Factory.asKey(config.command))
 
     val commandProperties = HystrixCommandProperties.Setter()
-    for (timeoutInMilliseconds <- config.timeout) {
-      commandProperties.withExecutionIsolationThreadTimeoutInMilliseconds(timeoutInMilliseconds)
+    for (timeout <- config.timeout) {
+      commandProperties.withExecutionIsolationThreadTimeoutInMilliseconds(timeout.toMillis.toInt)
     }
     for (isolationStrategy <- config.isolation) {
       commandProperties.withExecutionIsolationStrategy(isolationStrategy)
